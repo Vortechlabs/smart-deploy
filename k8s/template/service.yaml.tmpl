@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: svc-{{ .ProjectId }}
+  namespace: paas-apps
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  selector:
+    app: {{ .ProjectId }}
+  ports:
+  - port: 80
+    targetPort: {{ .Port }}
+  type: ClusterIP

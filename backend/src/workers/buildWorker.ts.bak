@@ -1,0 +1,98 @@
+import { Worker } from 'bullmq'
+import { redis } from '../lib/redis'
+import { prisma } from '../lib/prisma'
+import { GitHubService } from '../services/githubService'
+import { buildImage, pushImage } from '../services/dockerService'
+import { deployToK8s } from '../services/k8sService'
+import path from 'path'
+import fs from 'fs/promises'
+
+const worker = new Worker('build-queue', async (job) => {
+  const { deploymentId, projectId, repoUrl, branch, subdomain, port, githubToken } = job.data
+  
+  const addLog = async (message: string) => {
+    await prisma.buildLog.create({
+      data: { deploymentId, message }
+    })
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { logs: { append: message } }
+    })
+    job.log(message)
+  }
+  
+  try {
+    await addLog(`🚀 Starting deployment for project ${projectId}\n`)
+    
+    // Update status
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { status: 'building' }
+    })
+    
+    // Clone repository
+    await addLog(`📦 Cloning repository: ${repoUrl} (branch: ${branch})\n`)
+    const repoPath = path.join('/tmp', 'repos', projectId)
+    const github = new GitHubService(githubToken)
+    await github.cloneRepo(repoUrl, branch, repoPath)
+    await addLog(`✅ Repository cloned successfully\n`)
+    
+    // Generate Dockerfile
+    await addLog(`🐳 Generating Dockerfile...\n`)
+    await github.generateAndWriteDockerfile(repoPath, port)
+    await addLog(`✅ Dockerfile generated\n`)
+    
+    // Build image
+    await addLog(`🏗️ Building Docker image...\n`)
+    const imageName = await buildImage(projectId, repoPath, async (log) => {
+      await addLog(log)
+    })
+    await addLog(`✅ Image built: ${imageName}\n`)
+    
+    // Deploy to Kubernetes
+    await addLog(`☸️ Deploying to Kubernetes...\n`)
+    await deployToK8s(projectId, imageName, deploymentId, port, subdomain)
+    await addLog(`✅ Deployed to Kubernetes\n`)
+    
+    // Update status
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { status: 'running', finishedAt: new Date() }
+    })
+    
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'running' }
+    })
+    
+    await addLog(`🎉 Deployment complete! App available at: http://${subdomain}.localhost\n`)
+    
+    // Cleanup
+    await fs.rm(repoPath, { recursive: true, force: true })
+    
+  } catch (error) {
+    await addLog(`❌ Deployment failed: ${error}\n`)
+    await prisma.deployment.update({
+      where: { id: deploymentId },
+      data: { status: 'failed', finishedAt: new Date() }
+    })
+    await prisma.project.update({
+      where: { id: projectId },
+      data: { status: 'failed' }
+    })
+    throw error
+  }
+}, {
+  connection: redis,
+  concurrency: 1 // Process one build at a time (adjust as needed)
+})
+
+worker.on('completed', (job) => {
+  console.log(`✅ Job ${job.id} completed`)
+})
+
+worker.on('failed', (job, err) => {
+  console.error(`❌ Job ${job?.id} failed:`, err)
+})
+
+console.log('🚀 Build worker started')

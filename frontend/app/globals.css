@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Smooth theme transition - hanya untuk properti warna */
+html {
+  transition: background-color 0.2s ease;
+}
+
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Transition untuk elemen yang sering berubah tema */
+.bg-white,
+.bg-gray-50,
+.bg-gray-100,
+.bg-gray-800,
+.bg-gray-900,
+.dark\:bg-gray-800,
+.dark\:bg-gray-900,
+.dark\:bg-gray-700 {
+  transition: background-color 0.2s ease;
+}
+
+.text-gray-900,
+.text-gray-700,
+.text-gray-500,
+.dark\:text-white,
+.dark\:text-gray-300,
+.dark\:text-gray-400 {
+  transition: color 0.2s ease;
+}
+
+.border-gray-200,
+.border-gray-300,
+.dark\:border-gray-700,
+.dark\:border-gray-600 {
+  transition: border-color 0.2s ease;
+}

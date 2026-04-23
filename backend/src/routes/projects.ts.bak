@@ -1,0 +1,163 @@
+import { Elysia, t } from 'elysia'
+import { prisma } from '../lib/prisma'
+
+export const projectsRoutes = new Elysia({ prefix: '/projects' })
+  // Get all projects for a user
+  .get('/', async ({ headers, set }) => {
+    const authHeader = headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      set.status = 401
+      return { error: 'Unauthorized' }
+    }
+    
+    const token = authHeader.substring(7)
+    
+    const user = await prisma.user.findFirst({
+      where: { githubToken: token }
+    })
+    
+    if (!user) {
+      set.status = 401
+      return { error: 'User not found' }
+    }
+    
+    const projects = await prisma.project.findMany({
+      where: { userId: user.id },
+      include: {
+        deployments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+    
+    return projects
+  })
+  
+  // Create a new project
+  .post('/', async ({ body, headers, set }) => {
+    const authHeader = headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      set.status = 401
+      return { error: 'Unauthorized' }
+    }
+    
+    const token = authHeader.substring(7)
+    
+    const user = await prisma.user.findFirst({
+      where: { githubToken: token }
+    })
+    
+    if (!user) {
+      set.status = 401
+      return { error: 'User not found' }
+    }
+    
+    const { name, repoUrl, branch, subdomain, port } = body as any
+    
+    // Check if subdomain is available
+    const existing = await prisma.project.findUnique({
+      where: { subdomain }
+    })
+    
+    if (existing) {
+      set.status = 400
+      return { error: 'Subdomain already taken' }
+    }
+    
+    const project = await prisma.project.create({
+      data: {
+        name,
+        repoUrl,
+        branch: branch || 'main',
+        subdomain,
+        port: port || 3000,
+        userId: user.id,
+        status: 'pending'
+      }
+    })
+    
+    return project
+  })
+  
+  // Get a specific project
+  .get('/:id', async ({ params, headers, set }) => {
+    const authHeader = headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      set.status = 401
+      return { error: 'Unauthorized' }
+    }
+    
+    const token = authHeader.substring(7)
+    
+    const user = await prisma.user.findFirst({
+      where: { githubToken: token }
+    })
+    
+    if (!user) {
+      set.status = 401
+      return { error: 'User not found' }
+    }
+    
+    const project = await prisma.project.findFirst({
+      where: {
+        id: params.id,
+        userId: user.id
+      },
+      include: {
+        deployments: {
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    })
+    
+    if (!project) {
+      set.status = 404
+      return { error: 'Project not found' }
+    }
+    
+    return project
+  })
+  
+  // Delete a project
+  .delete('/:id', async ({ params, headers, set }) => {
+    const authHeader = headers.authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      set.status = 401
+      return { error: 'Unauthorized' }
+    }
+    
+    const token = authHeader.substring(7)
+    
+    const user = await prisma.user.findFirst({
+      where: { githubToken: token }
+    })
+    
+    if (!user) {
+      set.status = 401
+      return { error: 'User not found' }
+    }
+    
+    const project = await prisma.project.findFirst({
+      where: {
+        id: params.id,
+        userId: user.id
+      }
+    })
+    
+    if (!project) {
+      set.status = 404
+      return { error: 'Project not found' }
+    }
+    
+    await prisma.deployment.deleteMany({
+      where: { projectId: params.id }
+    })
+    
+    await prisma.project.delete({
+      where: { id: params.id }
+    })
+    
+    return { success: true }
+  })

@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-{{ .ProjectId }}
+  namespace: paas-apps
+  labels:
+    app: {{ .ProjectId }}
+spec:
+  replicas: {{ .Replicas | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .ProjectId }}
+  template:
+    metadata:
+      labels:
+        app: {{ .ProjectId }}
+    spec:
+      containers:
+      - name: app
+        image: {{ .ImageName }}
+        ports:
+        - containerPort: {{ .Port }}
+        resources:
+          requests:
+            cpu: {{ .CpuRequest | default "100m" }}
+            memory: {{ .MemoryRequest | default "128Mi" }}
+          limits:
+            cpu: {{ .CpuLimit | default "500m" }}
+            memory: {{ .MemoryLimit | default "512Mi" }}

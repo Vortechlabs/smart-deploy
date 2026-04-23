@@ -1,0 +1,43 @@
+services:
+  gateway:
+    image: nginx:alpine
+    container_name: smart-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - smart-network
+
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: smart-deploy-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/smart_deploy?schema=public
+    depends_on:
+      - db
+    networks:
+      - smart-network
+
+  db:
+    image: postgres:latest
+    container_name: smart-deploy-db
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: smart_deploy
+    networks:
+      - smart-network
+
+  redis:
+    image: redis:7
+    container_name: redis-paas
+    networks:
+      - smart-network
+
+networks:
+  smart-network:
+    driver: bridge
