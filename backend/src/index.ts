@@ -20,18 +20,16 @@ console.log("  GITHUB_CLIENT_SECRET exists:", !!process.env.GITHUB_CLIENT_SECRET
 console.log("  DATABASE_URL exists:", !!process.env.DATABASE_URL)
 
 const app = new Elysia()
-   .use(cors({
-    origin: [
-      'http://41.216.191.42:3001', 
-      'http://41.216.191.42:3000',
-      'http://41.216.191.42', // Tanpa port buat jaga-jaga
-      'http://localhost:3001',
-      'http://localhost:3000'
-    ],
+.use(cors({
+    origin: () => true,
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
-  }))
+}))
+.use(cors({
+  origin: () => true, // Izinin semua orang selama masa testing
+  credentials: true
+}))
   .use(swagger({
     path: '/swagger',
     documentation: {
