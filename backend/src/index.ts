@@ -20,14 +20,13 @@ console.log("  GITHUB_CLIENT_SECRET exists:", !!process.env.GITHUB_CLIENT_SECRET
 console.log("  DATABASE_URL exists:", !!process.env.DATABASE_URL)
 
 const app = new Elysia()
-  .use(cors({
-    // Tambahin localhost:3001 secara eksplisit biar aman
+   .use(cors({
     origin: [
-      'http://localhost:3001', 
-      'http://localhost:3000',
-      'http://192.168.40.196:3000',
-      `http://${process.env.DOMAIN_SUFFIX || "localhost"}:3001`,
-      `http://${process.env.DOMAIN_SUFFIX || "localhost"}:3000`
+      'http://41.216.191.42:3001', 
+      'http://41.216.191.42:3000',
+      'http://41.216.191.42', // Tanpa port buat jaga-jaga
+      'http://localhost:3001',
+      'http://localhost:3000'
     ],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],

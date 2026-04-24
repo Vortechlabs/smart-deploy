@@ -1,0 +1,62 @@
+$ bun --watch src/index.ts
+🔧 Environment check:
+  GITHUB_CLIENT_ID exists: true
+  GITHUB_CLIENT_SECRET exists: true
+  DATABASE_URL exists: true
+🔄 Starting GitHub polling service (every 2 minutes)...
+🚀 Personal PaaS Backend running at http://41.216.191.42:3000
+📚 Swagger UI at http://41.216.191.42:3000/swagger
+🔌 WebSocket endpoint at ws://41.216.191.42:3000/ws/deploy/:id
+✅ Redis connected
+🔍 Checking 1 projects for new commits...
+🔍 Checking 1 projects for new commits...
+🔧 Environment check:
+  GITHUB_CLIENT_ID exists: true
+  GITHUB_CLIENT_SECRET exists: true
+  DATABASE_URL exists: true
+🔄 Starting GitHub polling service (every 2 minutes)...
+🚀 Personal PaaS Backend running at http:/.localhost:3000
+📚 Swagger UI at http:/.localhost:3000/swagger
+🔌 WebSocket endpoint at ws:/.localhost:3000/ws/deploy/:id
+✅ Redis connected
+60 | 
+61 | Example:
+62 |   await prisma.$executeRawUnsafe(\`ALTER USER prisma WITH PASSWORD '\${password}'\`)
+63 | 
+64 | More Information: https://pris.ly/d/execute-raw
+65 | `)}var di=({clientMethod:e,activeProvider:t})=>r=>{let n="",i;if(mr(r))n=r.sql,i={values:tt(r.values),__prismaRawParameters__:!0};else if(Array.isArray(r)){let[o,...s]=r;n=o,i={values:tt(s||[]),__prismaRawParameters__:!0}}else switch(t){case"sqlite":case"mysql":{n=r.sql,i={values:tt(r.values),__prismaRawParameters__:!0};break}case"cockroachdb":case"postgresql":case"postgres":{n=r.text,i={values:tt(r.values),__prismaRawParameters__:!0};break}case"sqlserver":{n=gl(r),i={values:tt(r.values),__prismaRawParameters__:!0};break}default:throw new Error(`The ${t} provider does not support ${e}`)}return i?.values?El(`prisma.${e}(${n}, ${i.values})`):El(`prisma.${e}(${n})`),{query:n,parameters:i}},Pl={requestArgsToMiddlewareArgs(e){return[e.strings,...e.values]},middlewareArgsToRequestArgs(e){let[t,...r]=e;return new Tl.Sql(t,r)}},Sl={requestArgsToMiddlewareArgs(e){return[e]},middlewareArgsToRequestArgs(e){return e[0]}};function mi(e){return function(r,n){let i,o=(s=e)=>{try{return s===void 0||s?.kind==="itx"?i??=vl(r(s
+
+PrismaClientKnownRequestError: 
+Invalid `prisma.project.findMany()` invocation in
+/var/www/smart-deploy/backend/src/services/pollingService.ts:11:43
+
+   8 console.log('🔄 Starting GitHub polling service (every 2 minutes)...')
+   9 
+  10 const checkProjects = async () => {
+→ 11   const projects = await prisma.project.findMany(
+Authentication failed against the database server, the provided database credentials for `postgres` are not valid
+       meta: {
+  modelName: "Project",
+  driverAdapterError: 637 |       this.onError(e);
+638 |     }
+639 |   }
+640 |   onError(error) {
+641 |     debug("Error in performIO: %O", error);
+642 |     throw new DriverAdapterError(convertDriverError(error));
+                ^
+DriverAdapterError: AuthenticationFailed
+ cause: [Object ...],
+
+      at onError (/var/www/smart-deploy/backend/node_modules/@prisma/adapter-pg/dist/index.mjs:642:11)
+      at performIO (/var/www/smart-deploy/backend/node_modules/@prisma/adapter-pg/dist/index.mjs:637:12)
+      at async queryRaw (/var/www/smart-deploy/backend/node_modules/@prisma/adapter-pg/dist/index.mjs:568:41)
+,
+},
+ clientVersion: "7.7.0",
+       code: "P1000"
+
+      at handleRequestError (/var/www/smart-deploy/backend/node_modules/@prisma/client/runtime/client.js:65:8286)
+      at handleAndLogRequestError (/var/www/smart-deploy/backend/node_modules/@prisma/client/runtime/client.js:65:7581)
+      at request (/var/www/smart-deploy/backend/node_modules/@prisma/client/runtime/client.js:65:7288)
+
+error: script "dev" was terminated by signal SIGTERM (Polite quit request)

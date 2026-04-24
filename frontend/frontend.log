@@ -1,0 +1,11 @@
+nohup: ignoring input
+$ next start -p "3001"
+⨯ Failed to start server
+Error: Failed to start server. Is port 3001 in use?
+    at Promise (unknown:1:11)
+    at processTicksAndRejections (unknown:7:39) {
+  code: 'EADDRINUSE',
+  syscall: 'listen',
+  errno: 0
+}
+error: script "start" exited with code 1
