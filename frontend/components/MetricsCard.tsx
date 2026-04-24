@@ -160,7 +160,7 @@ export default function MetricsCard({ projectId }: { projectId: string }) {
     const connect = () => {
       console.log(`📊 Connecting to metrics WebSocket for project ${projectId}...`)
       try {
-        ws = new WebSocket(`ws://localhost:3000/ws/metrics/${projectId}`)
+        ws = new WebSocket(`ws://41.216.191.42:3000/ws/metrics/${projectId}`)
         ws.onopen = () => {
           console.log('📊 Metrics WebSocket connected')
           setConnected(true)
@@ -264,12 +264,12 @@ export default function MetricsCard({ projectId }: { projectId: string }) {
           </div>
           <div>
             <p className="text-sm font-medium text-[#102d4d] dark:text-[#dae2ef]">Auto-Scaling Active</p>
-            <p className="text-[11px] text-[#5a7a9e] dark:text-[#7aa0c4]">{metrics.subdomain}.localhost</p>
+            <p className="text-[11px] text-[#5a7a9e] dark:text-[#7aa0c4]">{metrics.subdomain} </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <a
-            href={`http://${metrics.subdomain}.localhost`}
+            href={`http://${metrics.subdomain} `}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[11px] text-[#4072af] dark:text-[#7aa8d8] opacity-70 hover:opacity-100 hover:underline transition-opacity"

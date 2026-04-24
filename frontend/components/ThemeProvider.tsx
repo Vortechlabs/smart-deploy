@@ -82,7 +82,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // 🔥 Save to backend SILENTLY (no UI impact)
     const token = localStorage.getItem('github_token')
     if (token) {
-      fetch('http://localhost:3000/settings', {
+      fetch('http://41.216.191.42:3000/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

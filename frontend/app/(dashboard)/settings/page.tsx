@@ -36,7 +36,7 @@ export default function SettingsPage() {
       }
       
       try {
-        const res = await fetch('http://localhost:3000/settings', {
+        const res = await fetch('http://41.216.191.42:3000/settings', {
           headers: { Authorization: `Bearer ${token}` }
         })
         
@@ -90,7 +90,7 @@ export default function SettingsPage() {
     const token = localStorage.getItem('github_token')
     
     try {
-      const res = await fetch('http://localhost:3000/settings', {
+      const res = await fetch('http://41.216.191.42:3000/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -45,7 +45,7 @@ export default function ProjectDetailPage() {
     if (!token) return
     
     try {
-      const res = await fetch(`http://localhost:3000/projects/${id}/status`, {
+      const res = await fetch(`http://41.216.191.42:3000/projects/${id}/status`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -111,7 +111,7 @@ export default function ProjectDetailPage() {
     const token = localStorage.getItem('github_token')
     
     try {
-      const res = await fetch(`http://localhost:3000/projects/${id}/auto-deploy`, {
+      const res = await fetch(`http://41.216.191.42:3000/projects/${id}/auto-deploy`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ export default function ProjectDetailPage() {
           
           <div className="flex flex-wrap items-center gap-3 ml-10">
             <a
-              href={`http://${project.subdomain}.localhost`}
+              href={`http://${project.subdomain} `}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:underline"
@@ -228,7 +228,7 @@ export default function ProjectDetailPage() {
                 <path d="M2 7h10M7 2v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
               </svg>
-              {project.subdomain}.localhost
+              {project.subdomain} 
             </a>
             
             <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${getStatusColor(project.status)}`}>

@@ -21,7 +21,7 @@ console.log("  DATABASE_URL exists:", !!process.env.DATABASE_URL)
 
 const app = new Elysia()
   .use(cors({
-    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    origin: ['http://41.216.191.42', 'http://41.216.191.42:3000'],
     credentials: true
   }))
   .use(swagger({
@@ -50,13 +50,13 @@ const app = new Elysia()
 
 app.on('start', () => {
   console.log('📡 Server started, WebSocket endpoints:')
-  console.log('   - ws://localhost:3000/ws/deploy/:id')
-  console.log('   - ws://localhost:3000/ws/metrics/:projectId')
+  console.log('   - ws://41.216.191.42:3000/ws/deploy/:id')
+  console.log('   - ws://41.216.191.42:3000/ws/metrics/:projectId')
 })
 
-console.log(`🚀 Personal PaaS Backend running at http://localhost:3000`)
-console.log(`📚 Swagger UI at http://localhost:3000/swagger`)
-console.log(`🔌 WebSocket endpoint at ws://localhost:3000/ws/deploy/:id`)
+console.log(`🚀 Personal PaaS Backend running at http://41.216.191.42:3000`)
+console.log(`📚 Swagger UI at http://41.216.191.42:3000/swagger`)
+console.log(`🔌 WebSocket endpoint at ws://41.216.191.42:3000/ws/deploy/:id`)
 // Upload routes
 import { uploadRoutes } from './routes/upload'
 app.use(uploadRoutes)

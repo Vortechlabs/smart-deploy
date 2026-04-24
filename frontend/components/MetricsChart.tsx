@@ -2,8 +2,8 @@
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, defs, linearGradient,
-  stop, Area, AreaChart,
+  Tooltip, ResponsiveContainer, 
+  Area, AreaChart,
 } from 'recharts'
 
 interface MetricsChartProps {

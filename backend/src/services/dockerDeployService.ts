@@ -57,7 +57,7 @@ export async function deployToDocker(
     // BUAT NGINX CONFIG OTOMATIS
     await createNginxConfig(subdomain, hostPort)
     
-    console.log(`🎉 Deployed! http://${subdomain}.localhost`)
+    console.log(`🎉 Deployed! http://${subdomain}.41.216.191.42`)
     
     return { containerId: container.id, port: hostPort }
   } catch (error) {
@@ -70,7 +70,7 @@ async function createNginxConfig(subdomain: string, port: number) {
   const configFile = `${NGINX_SITES_AVAILABLE}/${subdomain}`
   const configContent = `server {
     listen 80;
-    server_name ${subdomain}.localhost;
+    server_name ${subdomain}.41.216.191.42;
     location / {
         proxy_pass http://127.0.0.1:${port};
         proxy_set_header Host $host;
@@ -118,7 +118,7 @@ export async function deleteDeployment(projectId: string, subdomain?: string) {
       await fs.unlink(`${NGINX_SITES_ENABLED}/${subdomain}`).catch(() => {})
       // Hapus file config
       await fs.unlink(`${NGINX_SITES_AVAILABLE}/${subdomain}`).catch(() => {})
-      console.log(`✅ Nginx config removed for ${subdomain}.localhost`)
+      console.log(`✅ Nginx config removed for ${subdomain}.41.216.191.42`)
       
       // Reload Nginx
       await execAsync('sudo systemctl reload nginx')

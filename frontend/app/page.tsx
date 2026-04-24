@@ -21,7 +21,7 @@ export default function LandingPage() {
       console.error("Missing GitHub Client ID")
       return
     }
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=http://localhost:3001/api/auth/callback&scope=repo,user`
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=http://41.216.191.42/api/auth/callback&scope=repo,user`
   }
   
   if (!isClient) {

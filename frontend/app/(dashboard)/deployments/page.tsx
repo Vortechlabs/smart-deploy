@@ -180,7 +180,7 @@ export default function DeploymentsPage() {
                   <div className="flex items-center gap-4 shrink-0">
                     <div className="text-right hidden sm:block">
                       <p className="text-xs font-mono text-[#4072af] dark:text-[#7aa8d8]">
-                        {deployment.project?.subdomain}.localhost
+                        {deployment.project?.subdomain} 
                       </p>
                       <p className="text-xs text-[#4072af]/50 mt-0.5">
                         {new Date(deployment.createdAt).toLocaleString()}

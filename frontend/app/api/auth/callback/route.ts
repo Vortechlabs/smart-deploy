@@ -1,4 +1,5 @@
 // frontend/app/api/auth/[...nextauth]/route.ts
+export const dynamic = 'force-dynamic' // <--- Tambahin ini di baris paling atas
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log("🔄 Exchanging code with backend...")
     
-    const response = await fetch('http://localhost:3000/auth/github/login', {
+    const response = await fetch('http://127.0.0.1:3000/auth/github/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code })
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     
     if (data.success && data.token) {
       // Buat response redirect
-      const redirectUrl = new URL('/', request.url)
+      const redirectUrl = new URL('http://41.216.191.42/', request.url)
       const responseObj = NextResponse.redirect(redirectUrl)
       
       // Set cookie (httpOnly: false biar bisa diakses JS)

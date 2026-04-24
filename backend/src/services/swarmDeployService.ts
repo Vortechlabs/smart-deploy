@@ -86,7 +86,7 @@ console.log(`✅ Service created: ${stdout.trim()}`)
     // Update Nginx config
     await updateNginxConfig(subdomain, hostPort)
     
-    console.log(`🎉 Deployed! http://${subdomain}.localhost`)
+    console.log(`🎉 Deployed! http://${subdomain}.41.216.191.42`)
     
     return { serviceName, port: hostPort }
     
@@ -102,7 +102,7 @@ async function updateNginxConfig(subdomain: string, port: number) {
   // Simple config yang PASTI berfungsi
   const configContent = `server {
     listen 80;
-    server_name ${subdomain}.localhost;
+    server_name ${subdomain}.41.216.191.42;
     
     location / {
         proxy_pass http://127.0.0.1:${port};
@@ -129,7 +129,7 @@ async function updateNginxConfig(subdomain: string, port: number) {
     // Test dan reload Nginx
     await execAsync('sudo nginx -t')
     await execAsync('sudo systemctl reload nginx')
-    console.log(`✅ Nginx reloaded - ${subdomain}.localhost → port ${port}`)
+    console.log(`✅ Nginx reloaded - ${subdomain}.41.216.191.42 → port ${port}`)
     
   } catch (error: any) {
     console.error(`⚠️ Nginx error: ${error.message}`)

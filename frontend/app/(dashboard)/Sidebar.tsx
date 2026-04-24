@@ -120,7 +120,7 @@ export default function Sidebar() {
     if (!token) return
 
     try {
-      const res = await fetch('http://localhost:3000/auth/verify', {
+      const res = await fetch('http://41.216.191.42:3000/auth/verify', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {
@@ -141,7 +141,7 @@ export default function Sidebar() {
     if (!token) return
 
     try {
-      const res = await fetch('http://localhost:3000/projects', {
+      const res = await fetch('http://41.216.191.42:3000/projects', {
         headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()

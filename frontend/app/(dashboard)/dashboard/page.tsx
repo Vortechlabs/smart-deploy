@@ -95,7 +95,7 @@ export default function OverviewPage() {
     const token = localStorage.getItem('github_token')
     if (!token) return
 
-    fetch('http://localhost:3000/projects', {
+    fetch('http://41.216.191.42:3000/projects', {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

@@ -38,7 +38,7 @@ export default function Navbar() {
     }
     
     try {
-      const res = await fetch('http://localhost:3000/auth/verify', {
+      const res = await fetch('http://41.216.191.42:3000/auth/verify', {
         headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -96,7 +96,7 @@ export default function Navbar() {
       console.error("Missing NEXT_PUBLIC_GITHUB_CLIENT_ID")
       return
     }
-    const redirectUri = 'http://localhost:3001/api/auth/callback'
+    const redirectUri = 'http://41.216.191.42/api/auth/callback'
     const scope = 'repo,user'
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`
   }

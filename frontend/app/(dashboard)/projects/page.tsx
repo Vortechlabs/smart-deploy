@@ -91,7 +91,7 @@ export default function ProjectsPage() {
       ) : (
         <div className="space-y-6">
           {projects.map((project) => {
-            const projectUrl = `http://${project.subdomain}.localhost`
+            const projectUrl = `http://${project.subdomain} `
             const isRunning = project.status === 'running'
             const thumbnailUrl = `https://image.thum.io/get/width/400/crop/800/${projectUrl}`
             
@@ -149,7 +149,7 @@ export default function ProjectsPage() {
                   <div className="flex items-center gap-4 shrink-0">
                     <div className="text-right hidden sm:block">
                       <p className="text-xs font-mono text-[#4072af] dark:text-[#7aa8d8]">
-                        {project.subdomain}.localhost
+                        {project.subdomain} 
                       </p>
                       <p className="text-xs text-[#4072af]/50 dark:text-[#7aa8d8]/50 mt-0.5">
                         {project.deployments?.[0]?.createdAt

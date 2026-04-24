@@ -59,7 +59,7 @@ export default function NewProjectPage() {
     
     try {
       const token = localStorage.getItem('github_token')
-      const response = await fetch(`http://localhost:3000/projects/check-subdomain?subdomain=${subdomain}`, {
+      const response = await fetch(`http://41.216.191.42:3000/projects/check-subdomain?subdomain=${subdomain}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -222,7 +222,7 @@ export default function NewProjectPage() {
       formDataUpload.append('subdomain', formData.subdomain)
       formDataUpload.append('port', String(formData.port))
       
-      const response = await fetch('http://localhost:3000/projects/upload-zip', {
+      const response = await fetch('http://41.216.191.42:3000/projects/upload-zip', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -535,7 +535,7 @@ export default function NewProjectPage() {
                 }`}
                 placeholder="myapp"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#4072af]/50">.localhost</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#4072af]/50"> </span>
               
               {/* 🔥 Status Indicator */}
               {subdomainStatus === 'checking' && (
@@ -598,7 +598,7 @@ export default function NewProjectPage() {
             <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200">
               <p className="text-xs font-medium tracking-wider uppercase text-green-600 dark:text-green-400 mb-2">Preview URL</p>
               <code className="font-mono text-sm text-green-700 dark:text-green-300">
-                http://{formData.subdomain}.localhost
+                http://{formData.subdomain} 
               </code>
             </div>
           )}

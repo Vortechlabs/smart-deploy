@@ -21,7 +21,7 @@ export default function Terminal({
   const wsRef = useRef<WebSocket | null>(null)
   
   useEffect(() => {
-    const ws = new WebSocket(`ws://localhost:3000/ws/deploy/${deploymentId}`)
+    const ws = new WebSocket(`ws://41.216.191.42:3000/ws/deploy/${deploymentId}`)
     wsRef.current = ws
     
     ws.onopen = () => {

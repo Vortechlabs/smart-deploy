@@ -114,7 +114,7 @@ const worker = new Worker('build-queue', async (job) => {
       data: { status: 'running' } 
     })
     
-    await addLog(`🎉 Live at: http://${subdomain}.localhost\n`)
+    await addLog(`🎉 Live at: http://${subdomain}.41.216.191.42\n`)
     
     // Cleanup
     if (!isLocalPath) {

@@ -68,7 +68,7 @@ export async function deployToK8s(
   await ensureNamespace()
   
   const appName = `app-${projectId}`
-  const hostname = `${subdomain}.localhost`
+  const hostname = `${subdomain}.41.216.191.42`
   
   console.log(`☸️ Deploying to Kubernetes: ${appName}`)
   
@@ -165,7 +165,7 @@ async function deployToDocker(
     const configFile = `/etc/nginx/sites-available/${subdomain}`
     const configContent = `server {
     listen 80;
-    server_name ${subdomain}.localhost;
+    server_name ${subdomain}.41.216.191.42;
     location / {
         proxy_pass http://127.0.0.1:${hostPort};
         proxy_set_header Host $host;
@@ -181,7 +181,7 @@ async function deployToDocker(
       data: { status: 'running', port: hostPort }
     })
     
-    console.log(`🎉 Deployed to Docker! http://${subdomain}.localhost`)
+    console.log(`🎉 Deployed to Docker! http://${subdomain}.41.216.191.42`)
     return true
   } catch (error) {
     console.error('❌ Docker deploy error:', error)
