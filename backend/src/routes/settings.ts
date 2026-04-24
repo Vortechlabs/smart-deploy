@@ -106,6 +106,6 @@ export const settingsRoutes = new Elysia({ prefix: '/settings' })
   // Get webhook URL
   .get('/webhook-url', ({ headers }) => {
     // Bisa dari env atau generate
-    const baseUrl = process.env.PUBLIC_URL || 'http://41.216.191.42:3000'
+    const baseUrl = process.env.PUBLIC_URL || 'http:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000'
     return { webhookUrl: `${baseUrl}/webhook/github` }
   })

@@ -59,7 +59,7 @@ export default function NewProjectPage() {
     
     try {
       const token = localStorage.getItem('github_token')
-      const response = await fetch(`http://41.216.191.42:3000/projects/check-subdomain?subdomain=${subdomain}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/check-subdomain?subdomain=${subdomain}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -222,7 +222,7 @@ export default function NewProjectPage() {
       formDataUpload.append('subdomain', formData.subdomain)
       formDataUpload.append('port', String(formData.port))
       
-      const response = await fetch('http://41.216.191.42:3000/projects/upload-zip', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/upload-zip`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -15,15 +15,21 @@ export default function LandingPage() {
     setIsLoggedIn(!!token)
   }, [])
   
-  const handleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
-    if (!clientId) {
-      console.error("Missing GitHub Client ID")
-      return
+const handleLogin = () => {
+    // 1. Ambil nilainya dulu, simpan di konstanta
+    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+    const callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL;
+
+    // 2. Cek apakah variabelnya kebaca (liat di inspect element / console browser)
+    if (!clientId || !callbackUrl) {
+      console.error("Waduh Bra, Env lu gak kebaca nih!", { clientId, callbackUrl });
+      return;
     }
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=http://41.216.191.42/api/auth/callback&scope=repo,user`
+
+    // 3. Masukin ke URL pake encodeURIComponent biar aman
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=repo,user`;
   }
-  
+
   if (!isClient) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">

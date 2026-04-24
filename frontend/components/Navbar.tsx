@@ -37,8 +37,12 @@ export default function Navbar() {
       return
     }
     
-    try {
-      const res = await fetch('http://41.216.191.42:3000/auth/verify', {
+try {
+      // 1. Ambil base URL-nya dulu biar bersih
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      
+      // 2. Pake BACKTICK ( ` ) di sini, bukan kutip satu!
+      const res = await fetch(`${apiBase}/auth/verify`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -90,16 +94,20 @@ export default function Navbar() {
     setIsMobileMenuOpen(false)
   }, [pathname])
   
-  const handleLogin = () => {
-    const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID
-    if (!clientId) {
-      console.error("Missing NEXT_PUBLIC_GITHUB_CLIENT_ID")
-      return
-    }
-    const redirectUri = 'http://41.216.191.42/api/auth/callback'
-    const scope = 'repo,user'
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`
+const handleLogin = () => {
+  // Ambil dari variabel env
+  const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+  const callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL;
+
+  // Cek dulu, kalo env kosong berarti ada yang salah sama file .env lu
+  if (!clientId || !callbackUrl) {
+    console.error("Env missing! Cek file .env.local lu Bra.");
+    return;
   }
+
+  // Bungkus pake BACKTICK ( ` ), jangan kutip satu atau dua
+  window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=repo,user`;
+};
   
   const handleLogoutClick = () => {
     setIsLogoutModalOpen(true)

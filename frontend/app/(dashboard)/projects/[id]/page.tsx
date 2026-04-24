@@ -45,7 +45,7 @@ export default function ProjectDetailPage() {
     if (!token) return
     
     try {
-      const res = await fetch(`http://41.216.191.42:3000/projects/${id}/status`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/${id}/status`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       
@@ -111,7 +111,7 @@ export default function ProjectDetailPage() {
     const token = localStorage.getItem('github_token')
     
     try {
-      const res = await fetch(`http://41.216.191.42:3000/projects/${id}/auto-deploy`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/${id}/auto-deploy`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

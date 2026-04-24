@@ -3,7 +3,7 @@ import fs from 'fs/promises'
 const MAPPING_FILE = '/etc/nginx/conf.d/app-mapping.conf'
 
 export async function updateSubdomainMapping(subdomain: string, port: number) {
-    console.log(`📝 Adding mapping: ${subdomain}.41.216.191.42 -> port ${port}`)
+    console.log(`📝 Adding mapping: ${subdomain}${process.env.DOMAIN_SUFFIX || ".localhost"} -> port ${port}`)
     
     // Baca mapping yang ada
     let content = ''
@@ -47,14 +47,14 @@ export async function updateSubdomainMapping(subdomain: string, port: number) {
     try {
         await execAsync('sudo nginx -t')
         await execAsync('sudo systemctl reload nginx')
-        console.log(`✅ Nginx reloaded - ${subdomain}.41.216.191.42 is now LIVE!`)
+        console.log(`✅ Nginx reloaded - ${subdomain}${process.env.DOMAIN_SUFFIX || ".localhost"} is now LIVE!`)
     } catch (error: any) {
         console.error(`⚠️ Nginx reload failed: ${error.message}`)
     }
 }
 
 export async function removeSubdomainMapping(subdomain: string) {
-    console.log(`🗑️ Removing mapping for ${subdomain}.41.216.191.42`)
+    console.log(`🗑️ Removing mapping for ${subdomain}${process.env.DOMAIN_SUFFIX || ".localhost"}`)
     
     try {
         let content = await fs.readFile(MAPPING_FILE, 'utf-8')
@@ -87,7 +87,7 @@ export async function removeSubdomainMapping(subdomain: string) {
         const execAsync = promisify(exec)
         
         await execAsync('sudo systemctl reload nginx')
-        console.log(`✅ Mapping removed for ${subdomain}.41.216.191.42`)
+        console.log(`✅ Mapping removed for ${subdomain}${process.env.DOMAIN_SUFFIX || ".localhost"}`)
     } catch (error) {
         console.log(`⚠️ Failed to remove mapping:`, error)
     }

@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://41.216.191.42:3000'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}'
 
 const getCookie = (name: string) => {
   if (typeof document === 'undefined') return null;

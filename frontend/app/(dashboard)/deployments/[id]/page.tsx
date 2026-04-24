@@ -20,7 +20,7 @@ export default function DeploymentPage() {
     const token = localStorage.getItem('github_token')
     
     try {
-      const res = await fetch(`http://41.216.191.42:3000/deployments/${id}/analyze`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/deployments/${id}/analyze`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })

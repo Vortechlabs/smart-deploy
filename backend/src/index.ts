@@ -21,8 +21,17 @@ console.log("  DATABASE_URL exists:", !!process.env.DATABASE_URL)
 
 const app = new Elysia()
   .use(cors({
-    origin: ['http://41.216.191.42', 'http://41.216.191.42:3000'],
-    credentials: true
+    // Tambahin localhost:3001 secara eksplisit biar aman
+    origin: [
+      'http://localhost:3001', 
+      'http://localhost:3000',
+      'http://192.168.40.196:3000',
+      `http://${process.env.DOMAIN_SUFFIX || "localhost"}:3001`,
+      `http://${process.env.DOMAIN_SUFFIX || "localhost"}:3000`
+    ],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
   }))
   .use(swagger({
     path: '/swagger',
@@ -50,13 +59,13 @@ const app = new Elysia()
 
 app.on('start', () => {
   console.log('📡 Server started, WebSocket endpoints:')
-  console.log('   - ws://41.216.191.42:3000/ws/deploy/:id')
-  console.log('   - ws://41.216.191.42:3000/ws/metrics/:projectId')
+  console.log('   - ws:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000/ws/deploy/:id')
+  console.log('   - ws:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000/ws/metrics/:projectId')
 })
 
-console.log(`🚀 Personal PaaS Backend running at http://41.216.191.42:3000`)
-console.log(`📚 Swagger UI at http://41.216.191.42:3000/swagger`)
-console.log(`🔌 WebSocket endpoint at ws://41.216.191.42:3000/ws/deploy/:id`)
+console.log(`🚀 Personal PaaS Backend running at http:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000`)
+console.log(`📚 Swagger UI at http:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000/swagger`)
+console.log(`🔌 WebSocket endpoint at ws:/${process.env.DOMAIN_SUFFIX || ".localhost"}:3000/ws/deploy/:id`)
 // Upload routes
 import { uploadRoutes } from './routes/upload'
 app.use(uploadRoutes)

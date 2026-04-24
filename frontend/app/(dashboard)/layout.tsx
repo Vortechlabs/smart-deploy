@@ -35,7 +35,7 @@ export default function DashboardLayout({
       }
       
       try {
-        const res = await fetch('http://41.216.191.42:3000/auth/verify', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/auth/verify`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         
