@@ -160,7 +160,7 @@ export default function MetricsCard({ projectId }: { projectId: string }) {
     const connect = () => {
       console.log(`📊 Connecting to metrics WebSocket for project ${projectId}...`)
       try {
-        ws = new WebSocket(`ws://41.216.191.42:3000/ws/metrics/${projectId}`)
+        ws = new WebSocket(`ws://localhost:3000/ws/metrics/${projectId}`)
         ws.onopen = () => {
           console.log('📊 Metrics WebSocket connected')
           setConnected(true)

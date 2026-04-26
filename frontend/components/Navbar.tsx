@@ -25,45 +25,61 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   
   // 🔥 Fetch user function (reusable)
-  const fetchUser = async () => {
-    let token = getCookie('github_token')
-    if (!token) {
-      token = localStorage.getItem('github_token')
-    }
-    
-    if (!token) {
-      setUser(null)
-      setLoading(false)
-      return
-    }
-    
-try {
-      // 1. Ambil base URL-nya dulu biar bersih
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-      
-      // 2. Pake BACKTICK ( ` ) di sini, bukan kutip satu!
-      const res = await fetch(`${apiBase}/auth/verify`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      
-      if (res.ok) {
-        const data = await res.json()
-        setUser(data.user)
-        localStorage.setItem('github_token', token)
-        localStorage.setItem('user', JSON.stringify(data.user))
-      } else {
-        localStorage.removeItem('github_token')
-        localStorage.removeItem('user')
-        document.cookie = 'github_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-        setUser(null)
-      }
-    } catch (err) {
-      console.error("Auth check error:", err)
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
+const fetchUser = async () => {
+  let token = getCookie('github_token')
+  if (!token) {
+    token = localStorage.getItem('github_token')
   }
+  
+  if (!token) {
+    setUser(null)
+    setLoading(false)
+    return
+  }
+  
+  try {
+    // 🔥 CARA AMAN: Deteksi URL backend berdasarkan environment
+    let apiBase = 'http://localhost:3000'
+    
+    // Cek environment variable dulu
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      apiBase = process.env.NEXT_PUBLIC_API_URL
+    } 
+    // Fallback: di production VPS, pakai port 3000 di host yang sama
+    else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      apiBase = `http://${window.location.hostname}:3000`
+    }
+    
+    console.log('🔗 Connecting to backend:', apiBase) // Debug
+    
+    const res = await fetch(`${apiBase}/auth/verify`, {
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (res.ok) {
+      const data = await res.json()
+      setUser(data.user)
+      localStorage.setItem('github_token', token)
+      localStorage.setItem('user', JSON.stringify(data.user))
+    } else {
+      // Token invalid, clear all
+      localStorage.removeItem('github_token')
+      localStorage.removeItem('user')
+      document.cookie = 'github_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      setUser(null)
+    }
+  } catch (err) {
+    console.error("⚠️ Auth check error (backend might be offline):", err)
+    // 🔥 JANGAN setUser(null) kalau gagal fetch (backend mati)
+    // Biarkan user tetap login, kasih warning aja
+    setLoading(false)
+  } finally {
+    setLoading(false)
+  }
+}
   
   useEffect(() => {
     setIsClient(true)
@@ -95,19 +111,29 @@ try {
   }, [pathname])
   
 const handleLogin = () => {
-  // Ambil dari variabel env
-  const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-  const callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL;
-
-  // Cek dulu, kalo env kosong berarti ada yang salah sama file .env lu
-  if (!clientId || !callbackUrl) {
-    console.error("Env missing! Cek file .env.local lu Bra.");
-    return;
+  // 🔥 CARA AMAN: Deteksi callback URL berdasarkan environment
+  let callbackUrl = '/api/auth/callback'
+  
+  if (process.env.NEXT_PUBLIC_CALLBACK_URL) {
+    callbackUrl = process.env.NEXT_PUBLIC_CALLBACK_URL
+  } else if (typeof window !== 'undefined') {
+    // Auto-detect: gunakan origin + /api/auth/callback
+    callbackUrl = `${window.location.origin}/api/auth/callback`
   }
-
-  // Bungkus pake BACKTICK ( ` ), jangan kutip satu atau dua
-  window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=repo,user`;
-};
+  
+  const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || 'YOUR_CLIENT_ID'
+  
+  if (!clientId) {
+    console.error("❌ NEXT_PUBLIC_GITHUB_CLIENT_ID is not set! Check .env.local")
+    alert("Configuration error. Please contact admin.")
+    return
+  }
+  
+  console.log('🔑 Redirecting to GitHub with callback:', callbackUrl)
+  
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&scope=repo,user`
+  window.location.href = githubAuthUrl
+}
   
   const handleLogoutClick = () => {
     setIsLogoutModalOpen(true)

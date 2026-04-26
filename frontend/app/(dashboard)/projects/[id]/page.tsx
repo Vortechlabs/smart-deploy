@@ -17,6 +17,7 @@ export default function ProjectDetailPage() {
   const [autoDeploy, setAutoDeploy] = useState(true)
   const [toggling, setToggling] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showEnvSection, setShowEnvSection] = useState(false)
   
   // 🔥 Ref untuk cegah fetch berulang
   const initialFetchDone = useRef(false)
@@ -105,6 +106,11 @@ export default function ProjectDetailPage() {
       console.error('Delete failed:', err)
     }
   }
+
+  const getDomainSuffix = () => {
+  if (typeof window === 'undefined') return '.localhost'
+  return window.location.hostname === 'localhost' ? '.localhost' : '.qode.my.id'
+}
 
   const toggleAutoDeploy = async () => {
     setToggling(true)
@@ -218,18 +224,19 @@ export default function ProjectDetailPage() {
           </div>
           
           <div className="flex flex-wrap items-center gap-3 ml-10">
-            <a
-              href={`http://${project.subdomain} `}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none">
-                <path d="M2 7h10M7 2v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-              {project.subdomain} 
-            </a>
+
+<a
+  href={`http://${project.subdomain}${getDomainSuffix()}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+>
+  <svg className="w-4 h-4" viewBox="0 0 14 14" fill="none">
+    <path d="M2 7h10M7 2v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+  </svg>
+  {project.subdomain}{getDomainSuffix()}
+</a>
             
             <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full border ${getStatusColor(project.status)}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${project.status === 'running' || project.status === 'building' ? 'animate-pulse' : ''} bg-current`} />
@@ -266,6 +273,18 @@ export default function ProjectDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Quick Actions */}
+<div className="flex flex-wrap gap-2">
+  <Link href={`/projects/${project.id}/database`} 
+    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-orange-500 text-white hover:bg-orange-600 transition-colors">
+    🗄️ Database
+  </Link>
+  <button onClick={() => setShowEnvSection(!showEnvSection)} 
+    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+    ⚙️ Env Variables
+  </button>
+</div>
       
       {/* Repository Info */}
       <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800">

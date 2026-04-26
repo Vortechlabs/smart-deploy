@@ -1,20 +1,20 @@
 // backend/src/services/geminiService.ts
-
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-// 🔥 Model yang TERBUKTI BERHASIL
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',      // ✅ Sukses
-  'gemini-flash-latest',   // ✅ Sukses
-  'gemini-2.0-flash'       // Fallback (quota habis)
+  'gemini-2.0-flash-lite',  // Lebih ringan, quota lebih banyak
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
 ]
 
 export async function analyzeBuildError(errorLogs: string): Promise<string | null> {
   if (!GEMINI_API_KEY) {
-    console.error('❌ GEMINI_API_KEY not set')
-    return null
+    return null // Jangan tampilkan apapun kalau API key gak ada
   }
   
   console.log('🤖 Calling Gemini AI...')
+  
+  // 🔥 Ambil hanya error terakhir (lebih singkat)
+  const shortLogs = errorLogs.split('\n').slice(-20).join('\n')
   
   for (const model of GEMINI_MODELS) {
     try {
@@ -22,35 +22,37 @@ export async function analyzeBuildError(errorLogs: string): Promise<string | nul
       
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`
       
-      const prompt = `You are a DevOps expert. Analyze this build error and provide a CONCISE solution in this format:
-🔴 Root cause: [one line]
-✅ Solution: [one line]
-📝 Fix: [one line code fix]
+      const prompt = `Analyze this Docker build error and provide a FIX in ONE LINE:
 
-Build Error Logs:
-${errorLogs.slice(-2000)}`
+${shortLogs.slice(-1000)}
+
+Format: 🔴 Root cause: [1 sentence] \n✅ Fix: [1 sentence]`
 
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 150 }
         })
       })
       
       const data = await response.json()
       
-      // Quota exceeded? Try next model
       if (data.error?.status === 'RESOURCE_EXHAUSTED') {
-        console.log(`⚠️ ${model} quota exceeded, trying next...`)
+        console.log(`⚠️ ${model} quota exceeded`)
         continue
       }
       
-      // Success?
+      if (data.error) {
+        console.error(`❌ ${model} error:`, data.error.message)
+        continue
+      }
+      
       const result = data.candidates?.[0]?.content?.parts?.[0]?.text
       if (result) {
-        console.log(`✅ ${model} success!`)
-        return result
+        console.log(`✅ AI success!`)
+        return result.trim()
       }
       
     } catch (e: any) {
@@ -58,6 +60,6 @@ ${errorLogs.slice(-2000)}`
     }
   }
   
-  console.log('⚠️ All Gemini models failed')
+  // Kalau semua gagal, return null (jangan tampilkan apapun)
   return null
 }

@@ -1,187 +1,160 @@
+// backend/src/services/languageDetector.ts
 import fs from 'fs/promises'
 import path from 'path'
 
-export type Runtime = 'node' | 'python' | 'go' | 'rust' | 'static' | 'unknown'
+export type Runtime = 'node' | 'nextjs' | 'react' | 'vue' | 'express' | 'nestjs' | 'python' | 'go' | 'php' | 'rust' | 'static' | 'laravel' | 'unknown'
 
-export async function detectLanguage(repoPath: string): Promise<Runtime> {
-  try {
-    console.log(`🔍 Detecting language for: ${repoPath}`)
-    const files = await fs.readdir(repoPath)
-    console.log(`📁 Files found: ${files.slice(0, 15).join(', ')}`)
-    
-    // 🔥 Cek subfolder (hasil extract ZIP sering ada folder root)
-    if (files.length === 1) {
-      const subPath = path.join(repoPath, files[0])
-      try {
-        const stat = await fs.stat(subPath)
-        if (stat.isDirectory()) {
-          console.log(`📂 Entering subfolder: ${files[0]}`)
-          return detectLanguage(subPath)
-        }
-      } catch {}
-    }
-    
-    const hasIndexHtml = files.includes('index.html') || files.includes('index.htm')
-    const hasPackageJson = files.includes('package.json')
-    const hasRequirementsTxt = files.includes('requirements.txt')
-    const hasGoMod = files.includes('go.mod')
-    const hasCargoToml = files.includes('Cargo.toml')
-    const hasSetupPy = files.includes('setup.py')
-    const hasPyprojectToml = files.includes('pyproject.toml')
-    
-    console.log(`📄 hasIndexHtml: ${hasIndexHtml}`)
-    console.log(`📦 hasPackageJson: ${hasPackageJson}`)
-    console.log(`🐍 hasRequirementsTxt: ${hasRequirementsTxt}`)
-    
-    // Node.js
-    if (hasPackageJson) {
-      console.log(`✅ Detected as NODE.js`)
+export type ProjectType = 'single' | 'monorepo-frontend' | 'monorepo-backend' | 'fullstack'
+
+export interface ProjectStructure {
+  type: ProjectType
+  frontend?: {
+    path: string
+    runtime: Runtime
+    port: number
+  }
+  backend?: {
+    path: string
+    runtime: Runtime
+    port: number
+    database?: DatabaseConfig
+  }
+  services: ServiceConfig[]
+}
+
+export interface DatabaseConfig {
+  type: 'mysql' | 'postgresql' | 'sqlite' | 'mongodb'
+  version?: string
+  port: number
+  name?: string
+  user?: string
+  password?: string
+}
+
+export interface ServiceConfig {
+  name: string
+  type: 'mysql' | 'postgresql' | 'redis' | 'custom'
+  version?: string
+  port: number
+}
+
+export async function detectRuntime(repoPath: string): Promise<Runtime> {
+  const files = await fs.readdir(repoPath)
+  
+  // PHP/Laravel detection
+  if (files.includes('artisan')) return 'laravel'
+  if (files.includes('composer.json')) {
+    const composer = JSON.parse(await fs.readFile(path.join(repoPath, 'composer.json'), 'utf-8'))
+    if (composer.require?.['laravel/framework']) return 'laravel'
+    return 'php'
+  }
+  if (files.includes('index.php')) return 'php'
+  
+  // Node.js variants
+  if (files.includes('package.json')) {
+    try {
+      const pkg = JSON.parse(await fs.readFile(path.join(repoPath, 'package.json'), 'utf-8'))
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies }
+      if (deps['next']) return 'nextjs'
+      if (deps['react']) return 'react'
+      if (deps['vue']) return 'vue'
+      if (deps['express']) return 'express'
+      if (deps['@nestjs/core']) return 'nestjs'
+      return 'node'
+    } catch {
       return 'node'
     }
-    
-    // Python
-    if (hasRequirementsTxt || hasSetupPy || hasPyprojectToml) {
-      console.log(`✅ Detected as PYTHON`)
-      return 'python'
-    }
-    
-    // Go
-    if (hasGoMod) {
-      console.log(`✅ Detected as GO`)
-      return 'go'
-    }
-    
-    // Rust
-    if (hasCargoToml) {
-      console.log(`✅ Detected as RUST`)
-      return 'rust'
-    }
-    
-    // Static HTML - prioritas jika ada index.html
-    if (hasIndexHtml) {
-      console.log(`✅ Detected as STATIC website`)
-      return 'static'
-    }
-    
-    // 🔥 Default: static (serve folder apa adanya dengan nginx)
-    console.log(`⚠️ No specific framework detected, defaulting to STATIC`)
-    return 'static'
-    
-  } catch (error) {
-    console.error('Error detecting language:', error)
-    return 'static'
   }
-}
-
-export async function generateDockerfile(runtime: string, port: number): Promise<string> {
-  console.log(`🐳 Generating Dockerfile for: ${runtime}, port: ${port}`)
   
-  switch (runtime) {
-  case 'node':
-  return `FROM node:20-alpine
-
-WORKDIR /app
-
-# Copy package files
-COPY package*.json ./
-
-# Install ALL dependencies (termasuk devDependencies untuk Next.js)
-RUN npm install --legacy-peer-deps
-
-# Copy source code
-COPY . .
-
-# Build Next.js jika ada
-RUN if [ -f next.config.ts ] || [ -f next.config.js ] || [ -f next.config.mjs ]; then \
-      npm run build; \
-    fi
-
-# Expose port
-EXPOSE ${port}
-
-# Start app
-CMD ["npm", "start"]`
-
-    case 'python':
-      return `FROM python:3.11-slim
-
-WORKDIR /app
-
-COPY . .
-
-# Install dependencies
-RUN pip install -r requirements.txt 2>/dev/null || true
-
-EXPOSE ${port}
-
-CMD ["python", "app.py"]`
-
-    case 'go':
-      return `FROM golang:1.21-alpine AS builder
-
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download 2>/dev/null || true
-
-COPY . .
-RUN go build -o main . 2>/dev/null || go build -o main *.go
-
-FROM alpine:latest
-RUN apk --no-cache add ca-certificates
-WORKDIR /app
-COPY --from=builder /app/main .
-
-EXPOSE ${port}
-CMD ["./main"]`
-
-    case 'static':
-      return `FROM nginx:alpine
-
-COPY . /usr/share/nginx/html
-
-# Nginx config for SPA
-RUN echo 'server { \
-    listen 80; \
-    server_name _; \
-    root /usr/share/nginx/html; \
-    index index.html index.htm; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]`
-
-    default:
-      // Default: nginx static
-      return `FROM nginx:alpine
-
-COPY . /usr/share/nginx/html
-
-RUN echo 'server { \
-    listen 80; \
-    server_name _; \
-    root /usr/share/nginx/html; \
-    index index.html index.htm; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]`
-  }
+  // Python
+  if (files.includes('requirements.txt') || files.includes('pyproject.toml') || files.includes('Pipfile')) return 'python'
+  if (files.includes('app.py') || files.includes('main.py')) return 'python'
+  
+  // Go
+  if (files.includes('go.mod') || files.includes('main.go')) return 'go'
+  
+  // Rust
+  if (files.includes('Cargo.toml')) return 'rust'
+  
+  // Static
+  if (files.includes('index.html')) return 'static'
+  
+  return 'static'
 }
 
-export function getStartCommand(runtime: Runtime): string {
-  const commands: Record<Runtime, string> = {
-    node: 'npm start',
-    python: 'python app.py',
-    go: './main',
-    rust: './app',
-    static: 'nginx -g "daemon off;"',
-    unknown: 'nginx -g "daemon off;"'
+export async function detectLanguage(repoPath: string): Promise<Runtime> {
+  return detectRuntime(repoPath)
+}
+
+export async function analyzeProjectStructure(repoPath: string): Promise<ProjectStructure> {
+  const files = await fs.readdir(repoPath)
+  
+  const hasFrontend = files.includes('frontend') || files.includes('client')
+  const hasBackend = files.includes('backend') || files.includes('server') || files.includes('api')
+  
+  if (hasFrontend && hasBackend) {
+    const frontendDir = files.includes('frontend') ? 'frontend' : 'client'
+    const backendDir = files.includes('backend') ? 'backend' : files.includes('server') ? 'server' : 'api'
+    
+    const frontendRuntime = await detectRuntime(path.join(repoPath, frontendDir))
+    const backendRuntime = await detectRuntime(path.join(repoPath, backendDir))
+    
+    const needsDatabase = backendRuntime === 'laravel' || backendRuntime === 'php' || backendRuntime === 'express' || backendRuntime === 'nestjs'
+    
+    return {
+      type: 'fullstack',
+      frontend: {
+        path: frontendDir,
+        runtime: frontendRuntime,
+        port: frontendRuntime === 'static' ? 80 : 3000
+      },
+      backend: {
+        path: backendDir,
+        runtime: backendRuntime,
+        port: backendRuntime === 'laravel' ? 8000 : backendRuntime === 'go' ? 8080 : 3001,
+        database: needsDatabase ? {
+          type: 'mysql',
+          port: 3306,
+          name: 'app_db',
+          user: 'app_user',
+          password: 'secret123'
+        } : undefined
+      },
+      services: needsDatabase ? [
+        {
+          name: 'mysql',
+          type: 'mysql',
+          version: '8.0',
+          port: 3306
+        }
+      ] : []
+    }
   }
-  return commands[runtime] || commands.unknown
+  
+  const runtime = await detectRuntime(repoPath)
+  const needsDatabase = runtime === 'laravel' || runtime === 'php'
+  
+  return {
+    type: 'single',
+    services: needsDatabase ? [
+      {
+        name: 'mysql',
+        type: 'mysql',
+        version: '8.0',
+        port: 3306
+      }
+    ] : [],
+    backend: {
+      path: '.',
+      runtime,
+      port: runtime === 'laravel' ? 8000 : runtime === 'go' ? 8080 : runtime === 'static' ? 80 : 3000,
+      database: needsDatabase ? {
+        type: 'mysql',
+        port: 3306,
+        name: 'app_db',
+        user: 'app_user',
+        password: 'secret123'
+      } : undefined
+    }
+  }
 }

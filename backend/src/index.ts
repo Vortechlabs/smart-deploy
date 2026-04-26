@@ -49,6 +49,7 @@ const app = new Elysia()
   .use(stressRoutes) 
   .use(settingsRoutes)
   .use(monitoringRoutes)
+  .use(databaseRoutes)
   .get('/', () => ({ message: 'Personal PaaS API', status: 'running' }))
   .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }))
   .listen(3000)
@@ -70,4 +71,5 @@ app.use(uploadRoutes)
 // Webhook routes
 import { webhookRoutes } from './routes/webhook'
 import { monitoringRoutes } from './routes/monitoring'
+import { databaseRoutes } from './routes/databases'
 app.use(webhookRoutes)

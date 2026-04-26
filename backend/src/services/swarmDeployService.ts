@@ -102,8 +102,8 @@ async function updateNginxConfig(subdomain: string, port: number) {
   // Simple config yang PASTI berfungsi
   const configContent = `server {
     listen 80;
-    server_name ${subdomain}${process.env.DOMAIN_SUFFIX || ".localhost"};
-    
+    server_name ${subdomain}.${process.env.NODE_ENV === 'production' ? 'qode.my.id' : 'localhost'};
+
     location / {
         proxy_pass http://127.0.0.1:${port};
         proxy_set_header Host $host;

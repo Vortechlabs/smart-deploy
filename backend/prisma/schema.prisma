@@ -8,50 +8,54 @@ datasource db {
   // URL SUDAH PINDAH KE prisma.config.ts
 }
 
-
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  githubId    String   @unique
+  id          String    @id @default(cuid())
+  email       String    @unique
+  githubId    String    @unique
   githubToken String
   avatarUrl   String?
   username    String?
-  settings    String?  // ← TAMBAHKAN INI (JSON string)
+  settings    String? // ← TAMBAHKAN INI (JSON string)
   projects    Project[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Project {
-  id          String   @id @default(cuid())
+  id          String       @id @default(cuid())
   name        String
   repoUrl     String
-  branch      String   @default("main")
-  subdomain   String   @unique
-  status      String   @default("pending")
-  port        Int      @default(3000)
+  branch      String       @default("main")
+  subdomain   String       @unique
+  status      String       @default("pending")
+  port        Int          @default(3000)
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
   deployments Deployment[]
-  autoDeploy  Boolean  @default(true)  // ← TAMBAHKAN INI
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  autoDeploy  Boolean      @default(true)
+
+  // --- TAMBAHKAN BARIS INI ---
+  database Database?
+  // ---------------------------
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Deployment {
-  id            String    @id @default(cuid())
-  projectId     String
-  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  commitHash    String
-  commitMsg     String?
-  status        String    @default("pending")
-  logs          String?   @db.Text
-  aiSuggestion  String?   @db.Text  // ← TAMBAHKAN INI
-  imageName     String?
-  createdAt     DateTime  @default(now())
-  finishedAt    DateTime?
-  
-  buildLogs     BuildLog[]
+  id           String    @id @default(cuid())
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  commitHash   String
+  commitMsg    String?
+  status       String    @default("pending")
+  logs         String?   @db.Text
+  aiSuggestion String?   @db.Text // ← TAMBAHKAN INI
+  imageName    String?
+  createdAt    DateTime  @default(now())
+  finishedAt   DateTime?
+
+  buildLogs BuildLog[]
 }
 
 model BuildLog {
@@ -60,4 +64,19 @@ model BuildLog {
   deployment   Deployment @relation(fields: [deploymentId], references: [id])
   message      String     @db.Text
   timestamp    DateTime   @default(now())
+}
+
+model Database {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   @default("mysql") // mysql, postgresql, sqlite
+  host      String   @default("mysql")
+  port      Int      @default(3306)
+  name      String // database name
+  user      String // username
+  password  String // password
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

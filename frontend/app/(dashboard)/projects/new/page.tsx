@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { api } from '@/lib/api'
+import { api, getApiBaseUrl } from '@/lib/api'
 
 type SourceType = 'github' | 'zip'
 
@@ -13,7 +13,7 @@ export default function NewProjectPage() {
   const [error, setError] = useState<string | null>(null)
   const [sourceType, setSourceType] = useState<SourceType>('github')
   
-  // 🔥 NEW: Subdomain availability state
+  // Subdomain availability state
   const [subdomainStatus, setSubdomainStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
   const [subdomainError, setSubdomainError] = useState<string | null>(null)
   const debounceTimer = useRef<NodeJS.Timeout | null>(null)
@@ -27,7 +27,16 @@ export default function NewProjectPage() {
   
   // State untuk ZIP upload
   const [zipFile, setZipFile] = useState<File | null>(null)
+  const [sqlFile, setSqlFile] = useState<File | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
+  
+  // Get domain suffix based on environment
+  const getDomainSuffix = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.hostname === 'localhost' ? '.localhost' : '.qode.my.id'
+    }
+    return '.localhost'
+  }
   
   const [formData, setFormData] = useState({
     name: '',
@@ -38,48 +47,57 @@ export default function NewProjectPage() {
     port: 80
   })
   
-  // 🔥 NEW: Check subdomain availability
-  const checkSubdomainAvailability = async (subdomain: string) => {
-    if (!subdomain || subdomain.length < 3) {
-      setSubdomainStatus('idle')
-      setSubdomainError(null)
-      return
-    }
-    
-    // Validasi format subdomain
-    const subdomainRegex = /^[a-z0-9-]+$/
-    if (!subdomainRegex.test(subdomain)) {
-      setSubdomainStatus('idle')
-      setSubdomainError('Only lowercase letters, numbers, and hyphens allowed')
-      return
-    }
-    
-    setSubdomainStatus('checking')
+  // Check subdomain availability
+
+const checkSubdomainAvailability = async (subdomain: string) => {
+  if (!subdomain || subdomain.length < 3) {
+    setSubdomainStatus('idle')
     setSubdomainError(null)
-    
-    try {
-      const token = localStorage.getItem('github_token')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/check-subdomain?subdomain=${subdomain}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      
-      const data = await response.json()
-      
-      if (data.available) {
-        setSubdomainStatus('available')
-      } else {
-        setSubdomainStatus('taken')
-        setSubdomainError('This subdomain is already taken')
-      }
-    } catch (err) {
-      console.error('Failed to check subdomain:', err)
-      setSubdomainStatus('idle')
-    }
+    return
   }
   
-  // 🔥 NEW: Debounced subdomain check
+  // Validasi format subdomain
+  const subdomainRegex = /^[a-z0-9-]+$/
+  if (!subdomainRegex.test(subdomain)) {
+    setSubdomainStatus('idle')
+    setSubdomainError('Only lowercase letters, numbers, and hyphens allowed')
+    return
+  }
+  
+  setSubdomainStatus('checking')
+  setSubdomainError(null)
+  
+  try {
+    const token = localStorage.getItem('github_token')
+    const apiBase = getApiBaseUrl()
+    
+    const response = await fetch(`${apiBase}/projects/check-subdomain?subdomain=${subdomain}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    const data = await response.json()
+    
+    if (data.available) {
+      setSubdomainStatus('available')
+    } else {
+      setSubdomainStatus('taken')
+      setSubdomainError('This subdomain is already taken')
+    }
+  } catch (err: any) {
+    console.error('Failed to check subdomain:', err)
+    if (err.message === 'Failed to fetch') {
+      setSubdomainError('Cannot connect to backend. Is the server running?')
+    } else {
+      setSubdomainError(err.message)
+    }
+    setSubdomainStatus('idle')
+  }
+}
+  
+  // Debounced subdomain check
   const handleSubdomainChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '')
     
@@ -190,7 +208,7 @@ export default function NewProjectPage() {
       port: defaultPort
     })
     
-    // 🔥 Check availability for auto-generated subdomain
+    // Check availability for auto-generated subdomain
     if (subdomain.length >= 3) {
       checkSubdomainAvailability(subdomain)
     }
@@ -199,58 +217,67 @@ export default function NewProjectPage() {
   }
   
   // Handler untuk upload ZIP
-  const handleZipUpload = async () => {
-    if (!zipFile) return
-    
-    setUploadProgress(0)
-    const token = localStorage.getItem('github_token')
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(interval)
-          return 90
-        }
-        return prev + 10
-      })
-    }, 200)
-    
-    try {
-      const formDataUpload = new FormData()
-      formDataUpload.append('file', zipFile)
-      formDataUpload.append('projectName', formData.name)
-      formDataUpload.append('subdomain', formData.subdomain)
-      formDataUpload.append('port', String(formData.port))
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/projects/upload-zip`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formDataUpload
-      })
-      
-      clearInterval(interval)
-      setUploadProgress(100)
-      
-      if (response.ok) {
-        const project = await response.json()
-        router.push(`/projects/${project.id}`)
-      } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Upload failed')
+const handleZipUpload = async () => {
+  if (!zipFile) return
+  
+  setUploadProgress(0)
+  const token = localStorage.getItem('github_token')
+  const apiBase = getApiBaseUrl()
+  
+  const interval = setInterval(() => {
+    setUploadProgress(prev => {
+      if (prev >= 90) {
+        clearInterval(interval)
+        return 90
       }
-    } catch (err: any) {
-      clearInterval(interval)
-      setError(err.message || 'Failed to upload zip file')
-      setUploadProgress(0)
+      return prev + 10
+    })
+  }, 200)
+  
+  try {
+    const formDataUpload = new FormData()
+    formDataUpload.append('file', zipFile)
+    formDataUpload.append('projectName', formData.name)
+    formDataUpload.append('subdomain', formData.subdomain)
+    formDataUpload.append('port', String(formData.port))
+    
+    // Append SQL file if exists
+    if (sqlFile) {
+      formDataUpload.append('sqlFile', sqlFile)
     }
+    
+    
+    const response = await fetch(`${apiBase}/projects/upload-zip`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // Don't set Content-Type for FormData, browser will set it with boundary
+      },
+      body: formDataUpload
+    })
+    
+    clearInterval(interval)
+    setUploadProgress(100)
+    
+    if (response.ok) {
+      const project = await response.json()
+      router.push(`/projects/${project.id}`)
+    } else {
+      const error = await response.json()
+      throw new Error(error.error || 'Upload failed')
+    }
+  } catch (err: any) {
+    clearInterval(interval)
+    setError(err.message || 'Failed to upload zip file')
+    setUploadProgress(0)
   }
+}
+
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 🔥 Check subdomain availability before submit
+    // Check subdomain availability before submit
     if (subdomainStatus === 'taken') {
       setError('Subdomain is already taken. Please choose another.')
       return
@@ -304,7 +331,7 @@ export default function NewProjectPage() {
       subdomain
     })
     
-    // 🔥 Check availability for generated subdomain
+    // Check availability for generated subdomain
     if (subdomain.length >= 3) {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
       debounceTimer.current = setTimeout(() => {
@@ -514,7 +541,7 @@ export default function NewProjectPage() {
             />
           </div>
 
-          {/* 🔥 Subdomain dengan Real-time Validation */}
+          {/* Subdomain dengan Real-time Validation */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium tracking-wider uppercase text-[#4072af] dark:text-[#7aa8d8]">
               Subdomain <span className="text-red-500 ml-1">*</span>
@@ -535,17 +562,17 @@ export default function NewProjectPage() {
                 }`}
                 placeholder="myapp"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#4072af]/50"> </span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#4072af]/50">{getDomainSuffix()}</span>
               
-              {/* 🔥 Status Indicator */}
+              {/* Status Indicator */}
               {subdomainStatus === 'checking' && (
-                <div className="absolute right-28 top-1/2 -translate-y-1/2">
+                <div className="absolute right-20 top-1/2 -translate-y-1/2">
                   <div className="w-4 h-4 rounded-full border-2 border-[#4072af]/30 border-t-[#4072af] animate-spin" />
                 </div>
               )}
               
               {subdomainStatus === 'available' && (
-                <div className="absolute right-28 top-1/2 -translate-y-1/2">
+                <div className="absolute right-20 top-1/2 -translate-y-1/2">
                   <svg className="w-5 h-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
@@ -553,7 +580,7 @@ export default function NewProjectPage() {
               )}
               
               {subdomainStatus === 'taken' && (
-                <div className="absolute right-28 top-1/2 -translate-y-1/2">
+                <div className="absolute right-20 top-1/2 -translate-y-1/2">
                   <svg className="w-5 h-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -561,7 +588,7 @@ export default function NewProjectPage() {
               )}
             </div>
             
-            {/* 🔥 Validation Message */}
+            {/* Validation Message */}
             {subdomainError && (
               <p className="text-xs text-red-500 mt-1">{subdomainError}</p>
             )}
@@ -582,38 +609,91 @@ export default function NewProjectPage() {
             <label className="text-xs font-medium tracking-wider uppercase text-[#4072af] dark:text-[#7aa8d8]">
               Port
             </label>
-            <input
-              type="number"
-              name="port"
-              value={formData.port}
-              onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-white dark:bg-[#0f2035] border border-[#dae2ef] dark:border-[#1e3a5f] rounded-xl text-sm"
-              placeholder="3000"
-            />
-            <p className="text-xs text-[#4072af]/50">Static sites: 80 | Node.js: 3000</p>
+            {/* Port - Auto-detected by system */}
+            <input type="hidden" name="port" value={formData.port} />
+            <p className="text-xs text-[#4072af]/50">Port auto-detected based on project type</p>
+            <p className="text-xs text-[#4072af]/50">Static sites: 80 | Node.js: 3000 | Laravel: 8000</p>
+          </div>
+
+          {/* Database Options */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium tracking-wider uppercase text-[#4072af] dark:text-[#7aa8d8]">
+              Database Import (Optional)
+            </label>
+            <div className="border-2 border-dashed rounded-xl p-6 text-center border-[#dae2ef] dark:border-[#1e3a5f]">
+              <input
+                type="file"
+                accept=".sql,.sql.gz,.dump"
+                onChange={(e) => setSqlFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="sql-upload"
+              />
+              <label htmlFor="sql-upload" className="cursor-pointer block">
+                {sqlFile ? (
+                  <div className="space-y-1">
+                    <svg className="w-8 h-8 text-[#4072af] mx-auto" viewBox="0 0 14 14" fill="none">
+                      <path d="M2 4h10M2 10h10M4 1v12M10 1v12" stroke="currentColor" strokeWidth="1.3"/>
+                    </svg>
+                    <p className="font-medium text-sm">{sqlFile.name}</p>
+                    <p className="text-xs text-[#4072af]/50">
+                      {(sqlFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setSqlFile(null)
+                      }}
+                      className="text-xs text-red-500 hover:underline mt-1"
+                    >
+                      Remove file
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <svg className="w-8 h-8 text-[#4072af]/40 mx-auto" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3">
+                      <path d="M2 4h10M2 10h10M4 1v12M10 1v12" stroke="currentColor"/>
+                    </svg>
+                    <p className="text-sm text-[#4072af]/60">Upload SQL dump (optional)</p>
+                    <p className="text-xs text-[#4072af]/40">.sql, .sql.gz, .dump</p>
+                  </div>
+                )}
+              </label>
+            </div>
           </div>
 
           {/* Preview */}
           {formData.subdomain && subdomainStatus === 'available' && (
-            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200">
+            <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
               <p className="text-xs font-medium tracking-wider uppercase text-green-600 dark:text-green-400 mb-2">Preview URL</p>
               <code className="font-mono text-sm text-green-700 dark:text-green-300">
-                http://{formData.subdomain} 
+                http://{formData.subdomain}{getDomainSuffix()}
               </code>
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200">
-              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+            <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-2">
+                <svg className="w-5 h-5 text-red-500 shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              </div>
             </div>
           )}
 
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading || (sourceType === 'github' && !selectedRepo) || (sourceType === 'zip' && !zipFile) || subdomainStatus === 'taken' || subdomainStatus === 'checking'}
+            disabled={
+              loading || 
+              (sourceType === 'github' && !selectedRepo) || 
+              (sourceType === 'zip' && !zipFile) || 
+              subdomainStatus === 'taken' || 
+              subdomainStatus === 'checking'
+            }
             className="w-full py-2.5 rounded-xl text-sm font-medium bg-[#4072af] text-white hover:bg-[#3362a0] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {loading ? 'Creating...' : 'Create Project'}

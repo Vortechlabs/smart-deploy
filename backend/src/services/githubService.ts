@@ -4,7 +4,8 @@ import fs from 'fs/promises'
 import path from 'path'
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { detectLanguage, generateDockerfile } from './languageDetector'
+import { detectLanguage } from './languageDetector'
+import { generateDockerfile } from './dockerComposeGenerator'
 
 const execAsync = promisify(exec)
 

@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { api } from '@/lib/api'
 import Terminal from '@/components/Terminal'
 
@@ -13,14 +13,67 @@ export default function DeploymentPage() {
   const [isClient, setIsClient] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   
-  const deploymentId = useMemo(() => id as string, [id])
+  // 🔥 SIMPAN deploymentId DI REF - biar gak berubah
+  const deploymentIdRef = useRef<string>('')
+  
+  useEffect(() => {
+    if (id && typeof id === 'string') {
+      deploymentIdRef.current = id
+    }
+  }, [id])
+  
+  const deploymentId = deploymentIdRef.current
+  
+  // 🔥 Fetch deployment HANYA SEKALI + pas status building
+  const statusRef = useRef<string>('')
+  
+  const fetchDeployment = useCallback(async () => {
+    if (!id || !isClient) return
+    try {
+      const data = await api.deployments.get(id as string)
+      setDeployment(data)
+      statusRef.current = data.status
+    } catch (err) {
+      console.error('Failed to fetch deployment:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [id, isClient])
+  
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+  
+  useEffect(() => {
+    if (!id || !isClient) return
+    
+    // Fetch pertama
+    fetchDeployment()
+    
+    // 🔥 HANYA poll kalau status building/pending
+    const interval = setInterval(() => {
+      if (statusRef.current === 'building' || statusRef.current === 'pending') {
+        fetchDeployment()
+      }
+    }, 3000) // 3 detik biar gak terlalu sering
+    
+    return () => clearInterval(interval)
+  }, [id, isClient, fetchDeployment])
+  
+  // 🔥 HENTIKAN polling begitu status final
+  useEffect(() => {
+    if (deployment?.status === 'running' || deployment?.status === 'failed') {
+      statusRef.current = deployment.status
+    }
+  }, [deployment?.status])
 
   const handleAnalyze = async () => {
     setAnalyzing(true)
     const token = localStorage.getItem('github_token')
     
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"}/deployments/${id}/analyze`, {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const res = await fetch(`${apiBase}/deployments/${id}/analyze`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -39,35 +92,6 @@ export default function DeploymentPage() {
       setAnalyzing(false)
     }
   }
-  
-  const fetchDeployment = async () => {
-    if (!id || !isClient) return
-    try {
-      const data = await api.deployments.get(id as string)
-      setDeployment(data)
-    } catch (err) {
-      console.error('Failed to fetch deployment:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
-  
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-  
-  useEffect(() => {
-    if (!id || !isClient) return
-    fetchDeployment()
-    
-    const interval = setInterval(() => {
-      if (deployment?.status === 'building' || deployment?.status === 'pending') {
-        fetchDeployment()
-      }
-    }, 2000)
-    
-    return () => clearInterval(interval)
-  }, [id, isClient, deployment?.status])
 
   const statusStyles: Record<string, string> = {
     running: 'text-emerald-700 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800',
@@ -114,9 +138,6 @@ export default function DeploymentPage() {
       <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
         <div className="w-12 h-12 rounded-xl bg-[#dae2ef] dark:bg-[#102d4d] flex items-center justify-center text-2xl">🔍</div>
         <h1 className="text-xl font-medium text-[#102d4d] dark:text-[#dae2ef]">Deployment not found</h1>
-        <p className="text-sm text-[#4072af]/70 dark:text-[#7aa8d8]/70 max-w-sm">
-          The deployment you're looking for doesn't exist or you don't have access.
-        </p>
         <Link href="/projects" className="mt-2 inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-[#4072af] text-white hover:bg-[#3362a0] transition-colors">
           ← Back to Projects
         </Link>
@@ -134,9 +155,6 @@ export default function DeploymentPage() {
             <StatusBadge status={deployment.status} />
           </div>
           <p className="text-sm text-[#4072af]/70 dark:text-[#7aa8d8]/70 flex items-center gap-1.5">
-            <svg className="w-3.5 h-3.5 opacity-60" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 .25C3.73.25.25 3.73.25 8a7.75 7.75 0 005.3 7.37c.39.07.53-.17.53-.37v-1.3c-2.16.47-2.62-1.04-2.62-1.04-.36-.91-.87-1.15-.87-1.15-.71-.48.05-.47.05-.47.79.06 1.2.81 1.2.81.7 1.2 1.84.85 2.29.65.07-.5.27-.85.49-1.04-1.73-.2-3.54-.86-3.54-3.84 0-.85.3-1.54.8-2.08-.08-.2-.35-1 .07-2.07 0 0 .65-.21 2.13.79A7.4 7.4 0 018 4.17c.66 0 1.32.09 1.94.26 1.48-1 2.13-.79 2.13-.79.42 1.07.15 1.87.07 2.07.5.54.8 1.23.8 2.08 0 2.99-1.82 3.64-3.55 3.83.28.24.52.71.52 1.43v2.12c0 .21.14.45.54.37A7.75 7.75 0 0015.75 8C15.75 3.73 12.27.25 8 .25z" />
-            </svg>
             Project:{' '}
             <Link href={`/projects/${deployment.projectId}`} className="hover:underline text-[#4072af] dark:text-[#7aa8d8]">
               {deployment.project?.name || deployment.projectId}
@@ -145,9 +163,6 @@ export default function DeploymentPage() {
         </div>
         
         <Link href={`/projects/${deployment.projectId}`} className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg bg-[#dae2ef] text-[#4072af] border border-[#b3c8e3] hover:bg-[#c8d8ed] dark:bg-[#102d4d]/60 dark:text-[#7aa8d8] dark:border-[#1e4878] dark:hover:bg-[#102d4d] transition-colors shrink-0">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 12 12" fill="none">
-            <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
           Back to Project
         </Link>
       </div>
@@ -163,7 +178,7 @@ export default function DeploymentPage() {
             </div>
             <div className="space-y-1">
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#4072af]/50 dark:text-[#7aa8d8]/50">Status</p>
-              <div><StatusBadge status={deployment.status} /></div>
+              <StatusBadge status={deployment.status} />
             </div>
             <div className="space-y-1">
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#4072af]/50 dark:text-[#7aa8d8]/50">Started At</p>
@@ -172,7 +187,7 @@ export default function DeploymentPage() {
             <div className="space-y-1">
               <p className="text-[11px] font-medium uppercase tracking-wider text-[#4072af]/50 dark:text-[#7aa8d8]/50">Finished At</p>
               <p className="text-sm text-[#102d4d] dark:text-[#dae2ef]">
-                {deployment.finishedAt ? new Date(deployment.finishedAt).toLocaleString() : <span className="text-[#4072af]/60 dark:text-[#7aa8d8]/60 italic">In progress...</span>}
+                {deployment.finishedAt ? new Date(deployment.finishedAt).toLocaleString() : <span className="italic">In progress...</span>}
               </p>
             </div>
           </div>
@@ -186,13 +201,13 @@ export default function DeploymentPage() {
         </div>
       </Card>
 
-      {/* 🔥 TOMBOL ANALYZE - Muncul saat failed dan belum ada aiSuggestion */}
+      {/* AI Analyze Button */}
       {deployment.status === 'failed' && !deployment.aiSuggestion && (
         <div className="flex justify-center">
           <button
             onClick={handleAnalyze}
             disabled={analyzing}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-lg hover:shadow-xl"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition-all shadow-lg"
           >
             {analyzing ? (
               <>
@@ -202,10 +217,8 @@ export default function DeploymentPage() {
             ) : (
               <>
                 <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none">
-                  <path d="M10 15L7.5 12.5M10 15L12.5 12.5M10 15V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
-                  <path d="M5 8C4 8 3 9 3 10.5C3 12 4 13 5 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <path d="M15 8C16 8 17 9 17 10.5C17 12 16 13 15 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  <path d="M10 15L7.5 12.5M10 15L12.5 12.5M10 15V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 Analyze with Smart AI
               </>
@@ -216,25 +229,17 @@ export default function DeploymentPage() {
 
       {/* Build Logs */}
       <Card>
-        <div className="flex items-center justify-between mb-3">
-          <CardLabel>Build Logs</CardLabel>
-          {deployment.status === 'building' && <StatusBadge status="building" />}
-        </div>
-        <Terminal key={deploymentId} deploymentId={deploymentId} />
+        <CardLabel>Build Logs</CardLabel>
+        {/* 🔥 PASS deploymentId YANG STABIL */}
+        <Terminal deploymentId={deploymentId} />
       </Card>
 
       {/* AI Analysis Result */}
       {deployment.aiSuggestion && (
         <div className="p-5 rounded-xl bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-800">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/50">
-              <svg className="w-4 h-4 text-purple-600 dark:text-purple-400" viewBox="0 0 20 20" fill="none">
-                <path d="M10 15L7.5 12.5M10 15L12.5 12.5M10 15V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" />
-              </svg>
-            </div>
-            <h2 className="text-base font-medium text-purple-900 dark:text-purple-300">Smart Analysis</h2>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 ml-auto">AI Powered</span>
+            <h2 className="text-base font-medium text-purple-900 dark:text-purple-300">💡 Smart Analysis</h2>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300">AI</span>
           </div>
           
           <div className="bg-white/60 dark:bg-black/20 rounded-lg p-4">
@@ -242,7 +247,7 @@ export default function DeploymentPage() {
           </div>
           
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-xs text-gray-500 dark:text-gray-400">🤖 This analysis was generated to help you fix the issue.</p>
+            <p className="text-xs text-gray-500">🤖 Powered by Gemini AI</p>
             <button onClick={() => navigator.clipboard.writeText(deployment.aiSuggestion)} className="text-xs text-purple-600 dark:text-purple-400 hover:underline">Copy</button>
           </div>
         </div>
